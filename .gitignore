@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.*
+
+# Excepciones
+!.env.example
+
+# Compilaciones
+dist/
+build/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
