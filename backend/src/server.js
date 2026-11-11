@@ -3,7 +3,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import pool from "./config/db.js";
-
+import authRoutes from "./routes/auth.routes.js";
+import { verificarToken } from "./middleware/auth.js";
 
 dotenv.config();
 
@@ -30,8 +31,12 @@ app.get("/api/db-test", async (req, res) => {
         res.status(500).json({ conectado: false, message: error.message})
     }
 }); 
+app.use("/api/auth", authRoutes);
 
-
+// Ruta de prueba protegida (bórrala después)
+app.get("/api/me", verificarToken, (req, res) => {
+    res.json({ user: req.user });
+});
 app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
 });
