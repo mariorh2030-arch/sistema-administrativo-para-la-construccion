@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-export function verificarToken(req, res, next) {
+export  function verificarToken(req, res, next) {
     const [tipo, token] = (req.headers.authorization || "").split(" ");
 
     if (tipo !== "Bearer" || !token) {
