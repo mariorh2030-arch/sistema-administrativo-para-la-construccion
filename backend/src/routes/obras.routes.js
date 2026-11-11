@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 import express from "express"
-import { obtener } from "../controllers/obras.controller.js";
+import { listarObras, obtener, crear } from "../controllers/obras.controller.js";
 import { verificarToken } from "../middleware/auth.js";
 
 export async function listar(req, res) {
@@ -12,4 +12,5 @@ export async function listar(req, res) {
 const router = express.Router();
 export default router;
 
-router.get("/",verificarToken, obtener)
+router.get("/",verificarToken, listarObras)
+router.post("/", verificarToken, crear)

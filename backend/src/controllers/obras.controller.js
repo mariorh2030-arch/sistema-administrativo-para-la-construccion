@@ -38,7 +38,7 @@ function validar(o) {
     return null;
 }
 
-export async function listar(req, res) {
+export async function listarObras(req, res) {
     const [rows] = await pool.query(`${SELECT_OBRAS} ORDER BY o.Id DESC`);
     res.json(rows);
 }
