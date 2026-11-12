@@ -12,6 +12,15 @@ const SELECT_OBRAS = `
     FROM obras o
     JOIN numeros_patronales p ON p.Id = o.patronal_id`;
 
+const COLUMNAS = {
+        nombreObra: "nombre_obra",
+        fechaInicio: "fecha_inicio",
+        fechaCierre: "fecha_cierre",
+        numTrabajadores: "num_trabajadores",
+        monto: "monto",
+        patronalId: "patronal_id",
+    };
+    const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 // Acepta nombreObra o NombreObra (como lo manda tu pantalla hoy)
 function leerCampos(body = {}) {
     const get = (k) => body[k] ?? body[k[0].toUpperCase() + k.slice(1)];
@@ -36,6 +45,47 @@ function validar(o) {
     if (o.fechaCierre && o.fechaCierre < o.fechaInicio)
         return "La fecha de cierre no puede ser anterior a la de inicio";
     return null;
+}
+function leerParcial(body = {}) {
+    const campos = {};
+    for (const clave of Object.keys(COLUMNAS)) {
+        const pascal = clave[0].toUpperCase() + clave.slice(1);
+        if (clave in body) campos[clave] = body[clave];
+        else if (pascal in body) campos[clave] = body[pascal];
+    }
+    return campos;
+}
+
+function validarCampo(clave, v) {
+    const vacio = v === "" || v === null || v === undefined;
+    switch (clave) {
+        case "nombreObra":
+            return String(v ?? "").trim() ? null : "El nombre de la obra no puede estar vacío";
+        case "fechaInicio":
+            return FECHA.test(v) ? null : "La fecha de inicio no es válida";
+        case "fechaCierre":
+            return vacio || FECHA.test(v) ? null : "La fecha de cierre no es válida";
+        case "numTrabajadores":
+            return !vacio && Number.isInteger(Number(v)) && Number(v) >= 0
+                ? null : "El número de trabajadores no es válido";
+        case "monto":
+            return !vacio && Number.isFinite(Number(v)) && Number(v) >= 0
+                ? null : "El monto no es válido";
+        case "patronalId":
+            return !vacio && Number.isInteger(Number(v)) && Number(v) > 0
+                ? null : "Selecciona un número patronal";
+    }
+}
+
+function normalizar(clave, v) {
+    switch (clave) {
+        case "nombreObra": return String(v).trim();
+        case "fechaCierre": return v || null; // "" o null = quitar la fecha
+        case "numTrabajadores":
+        case "monto":
+        case "patronalId": return Number(v);
+        default: return v;
+    }
 }
 
 export async function listarObras(req, res) {
@@ -70,16 +120,43 @@ export async function crear(req, res) {
 }
 
 export async function actualizar(req, res) {
-    const obra = leerCampos(req.body);
-    const error = validar(obra);
-    if (error) return res.status(400).json({ message: error });
+    const crudos = leerParcial(req.body);
+    const claves = Object.keys(crudos);
+
+    if (claves.length === 0)
+        return res.status(400).json({ message: "No hay campos para actualizar" });
+
+    for (const clave of claves) {
+        const error = validarCampo(clave, crudos[clave]);
+        if (error) return res.status(400).json({ message: error });
+    }
+
+    const campos = {};
+    for (const clave of claves) campos[clave] = normalizar(clave, crudos[clave]);
+
+    // Si cambian fechas, comparar contra lo que ya está guardado
+    if ("fechaInicio" in campos || "fechaCierre" in campos) {
+        const [actual] = await pool.query(
+            "SELECT fecha_inicio AS fechaInicio, fecha_cierre AS fechaCierre FROM obras WHERE Id = ?",
+            [req.params.id]
+        );
+        if (actual.length === 0)
+            return res.status(404).json({ message: "Obra no encontrada" });
+
+        const inicio = campos.fechaInicio ?? actual[0].fechaInicio;
+        const cierre = "fechaCierre" in campos ? campos.fechaCierre : actual[0].fechaCierre;
+        if (cierre && cierre < inicio)
+            return res.status(400).json({ message: "La fecha de cierre no puede ser anterior a la de inicio" });
+    }
+
+    // Los nombres de columna salen de COLUMNAS (no del usuario), los valores van con "?"
+    const set = claves.map((c) => `${COLUMNAS[c]} = ?`).join(", ");
+    const valores = claves.map((c) => campos[c]);
 
     try {
         const [result] = await pool.query(
-            `UPDATE obras
-             SET nombre_obra = ?, fecha_inicio = ?, fecha_cierre = ?, num_trabajadores = ?, monto = ?, patronal_id = ?
-             WHERE Id = ?`,
-            [obra.nombreObra, obra.fechaInicio, obra.fechaCierre, obra.numTrabajadores, obra.monto, obra.patronalId, req.params.id]
+            `UPDATE obras SET ${set} WHERE Id = ?`,
+            [...valores, req.params.id]
         );
         if (result.affectedRows === 0)
             return res.status(404).json({ message: "Obra no encontrada" });
