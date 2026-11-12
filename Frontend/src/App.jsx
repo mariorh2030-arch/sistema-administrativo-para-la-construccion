@@ -3,9 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginForm from './features/login/Login.jsx'
 
 // Descomenta estos conforme migres cada módulo:
-// import SideBar from './Components/Layouts/SideBar'
+import SideBar from './Components/Layouts/SideBar'
 // import Facturas from './features/Facturas/Pages/Facturas'
-// import Obras from './features/Obras/Pages/Obras'
+import Obras from './features/Obras/pages/obras.jsx'
 // import Proveedores from './features/Proveedores/Pages/Proveedores'
 // import Cotizaciones from './features/Cotizaciones/Pages/Cotizaciones'
 
@@ -14,7 +14,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => !!localStorage.getItem('token')
   )
-
+  const [sidebarAbierto, setSidebarAbierto] = useState(false)
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -27,25 +27,17 @@ function App() {
 
   return (
     <BrowserRouter>
+  <div className="flex">
+    <SideBar isOpen={sidebarAbierto} onToggle={() => setSidebarAbierto(!sidebarAbierto)} />
+    <main className="flex-1 min-h-screen overflow-hidden">
       <Routes>
-        <Route
-          path="/"
-          element={
-            <div className="p-8">
-              <h1 className="text-2xl font-bold mb-4">Sesión iniciada</h1>
-              <button
-                onClick={handleLogout}
-                className="bg-gray-800 text-white px-4 py-2 rounded-xl"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          }
-        />
-        {/* Cualquier otra ruta (ej. /login) regresa al inicio */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<Navigate to="/obras" replace />} />
+        <Route path="/obras" element={<Obras />} />
+        <Route path="*" element={<Navigate to="/obras" replace />} />
       </Routes>
-    </BrowserRouter>
+    </main>
+  </div>
+</BrowserRouter>
   )
 }
 
