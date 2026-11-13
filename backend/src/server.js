@@ -7,7 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import { verificarToken } from "./middleware/auth.js";
 import obrasRoutes from "./routes/obras.routes.js";
 import patronalesRoutes from "./routes/patronales.routes.js";
-
+import proveedoresRoutes from "./routes/proveedores.routes.js"
 dotenv.config();
 
 const app = express();
@@ -36,6 +36,7 @@ app.get("/api/db-test", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/obras", verificarToken, obrasRoutes);
 app.use("/api/patronales", verificarToken, patronalesRoutes);
+app.use("/api/proveedores", verificarToken, proveedoresRoutes);
 
 // Ruta de prueba protegida (bórrala después)
 app.get("/api/me", verificarToken, (req, res) => {
